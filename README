@@ -1,0 +1,10 @@
+## How to use this image
+
+**Start a dnn server instance**
+
+````
+docker run -d -e connection_string=<YOUR CONNECTION STRING> bdukes/dnn-platform
+````
+
+**Environment Variables**
+- **connection_string**: Connection string to the DNN database
