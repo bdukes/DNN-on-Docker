@@ -1,9 +1,10 @@
 #Requires -RunAsAdministrator
-#Requires -Modules IISAdministration, Microsoft.PowerShell.Archive, SQLPS
+#Requires -Modules IISAdministration, Microsoft.PowerShell.Archive, SqlServer
 
 $version = '9.1.1'
 $dnnInstallUrl = "https://github.com/dnnsoftware/Dnn.Platform/releases/download/v$version/DNN_Platform_$version.129-232_Install.zip"
 $installZip = "$PSScriptRoot\install_$version.zip"
+$dbDir = "$PSScriptRoot\db\"
 $siteDir = "$PSScriptRoot\wwwroot\"
 $siteName = "dnn-platform_docker_build_$version"
 $port = '55555'
@@ -34,8 +35,14 @@ $config.configuration.connectionStrings.GetElementsByTagName("add") `
     | ForEach-Object { $_.connectionString = "Server=(local);Database=$siteName;Integrated Security=True"; }
 $config.Save($webConfigPath)
 
-Invoke-Sqlcmd -Query:"CREATE DATABASE [$siteName];" -Database:master
-if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(Encode-SQLName "IIS AppPool\$appPoolName")")) {
+if (Test-Path $dbDir) {
+    Remove-Item $dbDir -Recurse -Force
+}
+
+mkdir $dbDir
+
+Invoke-Sqlcmd -Query:"CREATE DATABASE [$siteName] ON (NAME=dnn, FILENAME='$dbDir\dnn.mdf') LOG ON (NAME=dnn_log, FILENAME='$dbDir\dnn_log.ldf');" -Database:master
+if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(ConvertTo-EncodedSqlName "IIS AppPool\$appPoolName")")) {
     Invoke-Sqlcmd -Query:"CREATE LOGIN [IIS AppPool\$appPoolName] FROM WINDOWS WITH DEFAULT_DATABASE = [$siteName];" -Database:master
 }
 Invoke-Sqlcmd -Query:"CREATE USER [IIS AppPool\$appPoolName] FOR LOGIN [IIS AppPool\$appPoolName];" -Database:$siteName
@@ -45,6 +52,7 @@ Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$appPoolN
 
 Remove-IISSite -Name $siteName -Confirm:$false
 Invoke-Sqlcmd -Query:"ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -Database:master
-Invoke-Sqlcmd -Query:"DROP DATABASE [$siteName];" -Database:master
+Invoke-Sqlcmd -Query:"ALTER DATABASE [$siteName] SET MULTI_USER WITH ROLLBACK IMMEDIATE;" -Database:master
+Invoke-Sqlcmd -Query:"EXEC sp_detach_db @dbname='$siteName', @skipchecks='true';" -Database:master
 
 docker build -t dnn-platform:$version $PSScriptRoot
