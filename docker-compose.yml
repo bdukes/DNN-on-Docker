@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  web:
+    image: dnn-platform:9.1.1
+    restart: always
+    depends_on:
+      - db
+    environment:
+      connection_string: 'Server=db;Database=dnn;uid=sa;pwd=DNN-Platform#9.1.1;'
+  db:
+    image: microsoft/mssql-server-windows-developer:2017-latest
+    volumes:
+      - "./db/:C:/temp/"
+    expose:
+      - '1433'
+    environment:
+      ACCEPT_EULA: 'Y'
+      sa_password: 'DNN-Platform#9.1.1'
+      attach_dbs: '[{ "dbName": "dnn", "dbFiles": [ "C:\\temp\\dnn.mdf", "C:\\temp\\dnn_log.ldf" ] }]'
