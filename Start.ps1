@@ -18,4 +18,4 @@ $config.configuration.connectionStrings.GetElementsByTagName("add") `
     | ForEach-Object { $_.connectionString = $connectionString; }
 $config.Save('C:\inetpub\wwwroot\web.config')
 
-./ServiceMonitor.exe w3wp
+./ServiceMonitor.exe w3svc

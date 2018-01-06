@@ -15,4 +15,4 @@ RUN Import-Module IISAdministration; \
     $sid = $manager.ApplicationPools['DefaultAppPool'].RawAttributes.applicationPoolSid; \
     icacls C:\inetpub\wwwroot /grant "*$($sid):M" /T /Q;
 
-ENTRYPOINT [ "./Start.ps1", "-connection_string", "$env:connection_string", "Verbose" ]
+ENTRYPOINT [ "powershell", "-NoProfile", "-Command", "./Start.ps1 -connectionString $env:connection_string -Verbose" ]
