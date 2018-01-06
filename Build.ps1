@@ -3,24 +3,21 @@
 
 $version = '9.1.1'
 $dnnInstallUrl = "https://github.com/dnnsoftware/Dnn.Platform/releases/download/v$version/DNN_Platform_$version.129-232_Install.zip"
-$installZip = "$PSScriptRoot\install_$version.zip"
-$dbDir = "$PSScriptRoot\db\"
-$siteDir = "$PSScriptRoot\wwwroot\"
-$siteName = "dnn-platform_docker_build_$version"
-$port = '55555'
-$webConfigPath = "$siteDir\web.config"
-$installConfigPath = "$siteDir\Install\DotNetNuke.install.config.resources"
 
+$installZip = "$PSScriptRoot\install_$version.zip"
 if (-not (Test-Path $installZip)) {
     Invoke-WebRequest $dnnInstallUrl -OutFile $installZip
 }
 
+$siteDir = "$PSScriptRoot\wwwroot\"
 if (Test-Path $siteDir) {
     Remove-Item $siteDir -Recurse -Force
 }
 
 Expand-Archive $installZip $siteDir
 
+$siteName = "dnn-platform_docker_build_$version"
+$port = '55555'
 New-IISSite -Name $siteName -PhysicalPath $siteDir -BindingInformation "*:${port}:" -Force
 
 $site = Get-IISSite -Name $siteName
@@ -30,12 +27,14 @@ $sid = $manager.ApplicationPools[$appPoolName].RawAttributes.applicationPoolSid
 icacls $siteDir /grant "*$($sid):M" /T /Q
 icacls $siteDir /grant "IUSR:R" /T /Q
 
+$webConfigPath = "$siteDir\web.config"
 [xml]$webConfig = Get-Content $webConfigPath
 $webConfig.configuration.connectionStrings.GetElementsByTagName("add") `
     | Where-Object { $_.name -eq 'SiteSqlServer' } `
     | ForEach-Object { $_.connectionString = "Server=(local);Database=$siteName;Integrated Security=True"; }
 $webConfig.Save($webConfigPath)
 
+$dbDir = "$PSScriptRoot\db\"
 if (Test-Path $dbDir) {
     Remove-Item $dbDir -Recurse -Force
 }
@@ -49,6 +48,7 @@ if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(ConvertTo-EncodedSq
 Invoke-Sqlcmd -Query:"CREATE USER [IIS AppPool\$appPoolName] FOR LOGIN [IIS AppPool\$appPoolName];" -Database:$siteName
 Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$appPoolName';" -Database:$siteName
 
+$installConfigPath = "$siteDir\Install\DotNetNuke.install.config.resources"
 [xml]$installConfig = Get-Content $installConfigPath
 $installConfig.dotnetnuke.portals.portal.templatefile = 'Blank Website.template'
 $installConfig.dotnetnuke.settings.AutoAddPortalAlias = 'Y'
