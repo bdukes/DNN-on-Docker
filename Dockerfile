@@ -15,4 +15,7 @@ RUN Import-Module IISAdministration; \
     $sid = $manager.ApplicationPools['DefaultAppPool'].RawAttributes.applicationPoolSid; \
     icacls C:\inetpub\wwwroot /grant "*$($sid):M" /T /Q;
 
+# DNS workaround, from https://github.com/docker/for-win/issues/500#issuecomment-289373352
+RUN Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters' -Name ServerPriorityTimeLimit -Value 0 -Type DWord
+
 ENTRYPOINT [ "powershell", "-NoProfile", "-Command", "./Start.ps1 -connectionString $env:connection_string -Verbose" ]
