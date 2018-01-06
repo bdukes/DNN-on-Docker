@@ -9,6 +9,7 @@ $siteDir = "$PSScriptRoot\wwwroot\"
 $siteName = "dnn-platform_docker_build_$version"
 $port = '55555'
 $webConfigPath = "$siteDir\web.config"
+$installConfigPath = "$siteDir\Install\DotNetNuke.install.config.resources"
 
 if (-not (Test-Path $installZip)) {
     Invoke-WebRequest $dnnInstallUrl -OutFile $installZip
@@ -29,11 +30,11 @@ $sid = $manager.ApplicationPools[$appPoolName].RawAttributes.applicationPoolSid
 icacls $siteDir /grant "*$($sid):M" /T /Q
 icacls $siteDir /grant "IUSR:R" /T /Q
 
-[xml]$config = Get-Content $webConfigPath
-$config.configuration.connectionStrings.GetElementsByTagName("add") `
+[xml]$webConfig = Get-Content $webConfigPath
+$webConfig.configuration.connectionStrings.GetElementsByTagName("add") `
     | Where-Object { $_.name -eq 'SiteSqlServer' } `
     | ForEach-Object { $_.connectionString = "Server=(local);Database=$siteName;Integrated Security=True"; }
-$config.Save($webConfigPath)
+$webConfig.Save($webConfigPath)
 
 if (Test-Path $dbDir) {
     Remove-Item $dbDir -Recurse -Force
@@ -47,6 +48,11 @@ if (-not (Test-Path "SQLSERVER:\SQL\(local)\DEFAULT\Logins\$(ConvertTo-EncodedSq
 }
 Invoke-Sqlcmd -Query:"CREATE USER [IIS AppPool\$appPoolName] FOR LOGIN [IIS AppPool\$appPoolName];" -Database:$siteName
 Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$appPoolName';" -Database:$siteName
+
+[xml]$installConfig = Get-Content $installConfigPath
+$installConfig.dotnetnuke.portals.portal.templatefile = 'Blank Website.template'
+$installConfig.dotnetnuke.settings.AutoAddPortalAlias = 'Y'
+$installConfig.Save($installConfigPath)
 
 (Invoke-WebRequest "http://localhost:$port/Install/Install.aspx?mode=install").Content
 
