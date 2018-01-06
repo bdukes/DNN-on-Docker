@@ -44,6 +44,7 @@ Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$appPoolN
 (Invoke-WebRequest "http://localhost:$port/Install/Install.aspx?mode=install").Content
 
 Remove-IISSite -Name $siteName -Confirm:$false
+Invoke-Sqlcmd -Query:"ALTER DATABASE [$siteName] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;" -Database:master
 Invoke-Sqlcmd -Query:"DROP DATABASE [$siteName];" -Database:master
 
 docker build -t dnn-platform:$version $PSScriptRoot
