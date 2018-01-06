@@ -46,4 +46,4 @@ Invoke-Sqlcmd -Query:"EXEC sp_addrolemember N'db_owner', N'IIS AppPool\$appPoolN
 Remove-IISSite -Name $siteName -Confirm:$false
 Invoke-Sqlcmd -Query:"DROP DATABASE [$siteName];" -Database:master
 
-docker build -t dnn-platform:latest $PSScriptRoot
+docker build -t dnn-platform:$version $PSScriptRoot
