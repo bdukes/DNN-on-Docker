@@ -8,3 +8,8 @@ docker run -d -e connection_string=<YOUR CONNECTION STRING> bdukes/dnn-platform
 
 **Environment Variables**
 - **connection_string**: Connection string to the DNN database
+
+# Background
+This project was created as part of the research for my presentation given at
+DNN Summit 2018, which is available to view at
+https://slides.com/briandukes/dnn-on-docker
