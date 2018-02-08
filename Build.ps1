@@ -32,6 +32,10 @@ $webConfigPath = "$siteDir\web.config"
 $webConfig.configuration.connectionStrings.GetElementsByTagName("add") `
     | Where-Object { $_.name -eq 'SiteSqlServer' } `
     | ForEach-Object { $_.connectionString = "Server=(local);Database=$siteName;Integrated Security=True"; }
+$usePortNumber = $webConfig.CreateElement("add")
+$usePortNumber.SetAttribute("key", "UsePortNumber")
+$usePortNumber.SetAttribute("value", "true")
+$webConfig.configuration.appSettings.AppendElement($usePortNumber)
 $webConfig.Save($webConfigPath)
 
 $dbDir = "$PSScriptRoot\db\"
